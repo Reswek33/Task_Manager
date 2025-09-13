@@ -3,6 +3,4 @@ export interface Task {
   title: string;
   description: string;
   status: 'pending' | 'completed';
-  createdAt: string;
-  updatedAt: string;
 }

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { type Task } from '../models/task.js';
+import { Task } from '../models/task';
 
 const filePath = path.join(__dirname, '../data/tasks.json');
 

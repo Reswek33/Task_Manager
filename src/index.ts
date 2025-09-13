@@ -6,7 +6,6 @@ app.use(express.json());
 
 app.use('/tasks', taskRoutes);
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+app.listen(3000, () => {
+  console.log(`Server running at http://localhost:${3000}`);
 });

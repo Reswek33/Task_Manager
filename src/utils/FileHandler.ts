@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { type Task } from '../models/task.js';
 
-const filePath = path.join(__dirname, '../Data/tasks.json');
+const filePath = path.join(__dirname, '../data/tasks.json');
 
 export const readTasks = (): Task[] => {
   if (!fs.existsSync(filePath)) return [];

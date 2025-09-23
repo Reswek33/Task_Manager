@@ -1,14 +1,36 @@
 import type { Request, Response } from 'express';
 import { readTasks, writeTasks } from '../utils/FileHandler';
 import {type Task } from '../models/task';
+import { parse } from 'path';
 
 export const getAllTasks = (req: Request, res: Response) => {
-  const status = req.query.status as string;
-  let tasks = readTasks();
-  if (status) {
-    tasks = tasks.filter(task => task.status === status);
+
+  let tasks: Task[] = readTasks();
+  const {status, category, search, page = 1, limit = 5, includeDeleted = 'false'} = req.query;
+
+  if (includeDeleted === 'true'){
+    tasks = tasks.filter(task => !task.deleted);
   }
-  res.json(tasks);
+
+  if (status) {
+    tasks = tasks.filter(task => task.status === status)
+  }
+
+  if (category){
+    tasks = tasks.filter(task => task.category === category)
+  }
+  if (search) {
+    const term  = (search as string).toLowerCase();
+    tasks = tasks.filter(task => task.title.toLowerCase().includes(term) || task.description.toLowerCase().includes(term));
+  }
+
+  const start = (Number(page) - 1) * Number(limit);
+  const paginated = tasks.slice(start, start + Number(limit));
+
+  res.json(paginated);
+
+
+  
 };
 
 export const getTaskById = (req: Request, res: Response) => {
@@ -18,6 +40,8 @@ export const getTaskById = (req: Request, res: Response) => {
   res.json(task);
 };
 
+
+
 export const createTask = (req: Request, res: Response) => {
 
    const body = req.body;
@@ -25,11 +49,11 @@ export const createTask = (req: Request, res: Response) => {
    if(!body){
     return res.status(400).json({error:"page not found"})
    }
-  const { title, description } = req.body;
+  const { title, description, category } = req.body;
   
 
-  if (!title || !description) {
-    return res.status(400).json({ error: 'Title and description are required' });
+  if (!title || !description || !category) {
+    return res.status(400).json({ error: 'Title, description and category are required' });
   }
 
   const tasks = readTasks();
@@ -38,6 +62,10 @@ export const createTask = (req: Request, res: Response) => {
     title,
     description,
     status: 'pending',
+    category: category || null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    deleted: false
   };
 
   tasks.push(newTask);
@@ -47,7 +75,7 @@ export const createTask = (req: Request, res: Response) => {
 
 export const updateTask = (req: Request, res: Response) => {
   const id = parseInt(req.params.id ?? '');
-  const { title, description, status } = req.body;
+  const { title, description, status , category } = req.body;
   const tasks = readTasks();
   const taskIndex = tasks.findIndex(t => t.id === id);
 
@@ -62,11 +90,44 @@ export const updateTask = (req: Request, res: Response) => {
     title: title ?? task.title,
     description: description ?? task.description,
     status: status ?? task.status,
+    category: category ?? task.category
   };
 
   writeTasks(tasks);
   res.json(tasks[taskIndex]);
 };
+export const getStats = (req: Request, res: Response) => {
+
+    const { includeDeleted } =req.query;
+    let tasks = readTasks();
+    if (includeDeleted === 'true'){
+      tasks = tasks.filter(task => !task.deleted);
+    };
+
+    if(!tasks ){
+       return res.status(404).json({error: "tasks not found"})
+    }
+
+    const stats = {
+      totalTasks: tasks.length,
+      pending: tasks.filter(task =>task.status === 'pending').length,
+      inProgress: tasks.filter(task => task.status === 'inProgress').length,
+      completed: tasks.filter(task => task.status === 'completed').length,
+      byCategory: {} as Record <string, number>
+    };
+
+    tasks.forEach(task => {
+      if(task.category){
+        stats.byCategory[task.category] = (stats.byCategory[task.category] || 0)+ 1;
+      }
+      
+    });
+
+    res.json(stats);
+    
+
+     
+  }
 
 export const deleteTask = (req: Request, res: Response) => {
   const id = parseInt(req.params.id ?? '');
@@ -76,6 +137,8 @@ export const deleteTask = (req: Request, res: Response) => {
   if (tasks.length === newTasks.length) {
     return res.status(404).json({ error: 'Task not found' });
   }
+
+  
 
   writeTasks(newTasks);
   res.status(204).send();

@@ -6,7 +6,7 @@ import { parse } from 'path';
 export const getAllTasks = (req: Request, res: Response) => {
 
   let tasks: Task[] = readTasks();
-  const {status, category, search, page = 1, limit = 5, includeDeleted = 'false'} = req.query;
+  const {status, category, search, page = 2, limit = 5, includeDeleted = 'false'} = req.query;
 
   if (includeDeleted === 'true'){
     tasks = tasks.filter(task => !task.deleted);
